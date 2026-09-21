@@ -1,16 +1,16 @@
-# React + Vite
+# Kanban App
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Full-stack Kanban board with drag-and-drop, custom categories, and Supabase persistence — built with React, Vite, and Tailwind.
 
-Currently, two official plugins are available:
+## Features
+- Drag-and-drop task management across To Do / In Progress / Done columns, with position tracking within each column
+- Create, edit, and delete tasks with title, description, and category tag
+- Custom categories with user-defined names and colors, manageable independently of tasks
+- Persistent storage via Supabase (Postgres)
+- Clear All function with confirmation
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Tech Stack
+- React + Vite
+- Tailwind CSS
+- @hello-pangea/dnd (drag-and-drop)
+- Supabase (database + backend)
