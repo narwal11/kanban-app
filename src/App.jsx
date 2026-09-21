@@ -264,6 +264,7 @@ function TaskCard({
   task,
   index,
   isEditing,
+  canEdit,
   categories,
   onDelete,
   onStartEdit,
@@ -273,18 +274,21 @@ function TaskCard({
   onDeleteCategory,
 }) {
   const category = categories.find((c) => c.name === task.tag)
+  const isInteractive = canEdit && !isEditing
 
   return (
-    <Draggable draggableId={String(task.id)} index={index} isDragDisabled={isEditing}>
+    <Draggable draggableId={String(task.id)} index={index} isDragDisabled={!canEdit || isEditing}>
       {(provided, snapshot) => (
         <div
           ref={provided.innerRef}
           {...provided.draggableProps}
-          {...(isEditing ? {} : provided.dragHandleProps)}
-          onClick={() => !isEditing && onStartEdit(task.id)}
-          className={`relative rounded-lg bg-white p-4 border border-slate-200 transition-colors hover:border-accent-300 ${
+          {...(isInteractive ? provided.dragHandleProps : {})}
+          onClick={() => isInteractive && onStartEdit(task.id)}
+          className={`relative rounded-lg bg-white p-4 border border-slate-200 transition-colors ${
+            isInteractive ? 'hover:border-accent-300' : ''
+          } ${
             snapshot.isDragging ? 'shadow-md border-accent-300' : ''
-          } ${!isEditing ? 'cursor-pointer' : ''}`}
+          } ${isInteractive ? 'cursor-pointer' : ''}`}
         >
           {isEditing ? (
             <TaskEditForm
@@ -297,30 +301,32 @@ function TaskCard({
             />
           ) : (
             <>
-              <div className="absolute top-2 right-2 flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onStartEdit(task.id)
-                  }}
-                  aria-label="Edit task"
-                  className="text-slate-400 hover:text-slate-600 leading-none text-sm"
-                >
-                  ✎
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onDelete(task.id)
-                  }}
-                  aria-label="Delete task"
-                  className="text-slate-400 hover:text-slate-600 leading-none text-sm"
-                >
-                  ×
-                </button>
-              </div>
+              {canEdit && (
+                <div className="absolute top-2 right-2 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onStartEdit(task.id)
+                    }}
+                    aria-label="Edit task"
+                    className="text-slate-400 hover:text-slate-600 leading-none text-sm"
+                  >
+                    ✎
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onDelete(task.id)
+                    }}
+                    aria-label="Delete task"
+                    className="text-slate-400 hover:text-slate-600 leading-none text-sm"
+                  >
+                    ×
+                  </button>
+                </div>
+              )}
               {task.tag && (
                 <span
                   className="inline-block rounded-full px-2 py-0.5 text-xs font-medium"
@@ -348,6 +354,7 @@ function Column({
   tasks,
   categories,
   editingTaskId,
+  canEdit,
   onAddTask,
   onDeleteTask,
   onStartEdit,
@@ -400,6 +407,7 @@ function Column({
                 task={task}
                 index={index}
                 isEditing={task.id === editingTaskId}
+                canEdit={canEdit}
                 categories={categories}
                 onDelete={onDeleteTask}
                 onStartEdit={onStartEdit}
@@ -413,37 +421,39 @@ function Column({
           </div>
         )}
       </Droppable>
-      <div className="mt-4 flex flex-col gap-2">
-        <input
-          type="text"
-          value={newTitle}
-          onChange={(e) => setNewTitle(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
-          placeholder="Task title"
-          className="min-w-0 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-accent-400"
-        />
-        <input
-          type="text"
-          value={newDescription}
-          onChange={(e) => setNewDescription(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
-          placeholder="Description (optional)"
-          className="min-w-0 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-accent-400"
-        />
-        <CategoryPicker
-          categories={categories}
-          selection={newTagSelection}
-          onChange={setNewTagSelection}
-          onDeleteCategory={onDeleteCategory}
-        />
-        <button
-          type="button"
-          onClick={handleAdd}
-          className="rounded-md bg-accent-600 px-4 py-2 text-sm font-medium text-white hover:bg-accent-700"
-        >
-          Add
-        </button>
-      </div>
+      {canEdit && (
+        <div className="mt-4 flex flex-col gap-2">
+          <input
+            type="text"
+            value={newTitle}
+            onChange={(e) => setNewTitle(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
+            placeholder="Task title"
+            className="min-w-0 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-accent-400"
+          />
+          <input
+            type="text"
+            value={newDescription}
+            onChange={(e) => setNewDescription(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
+            placeholder="Description (optional)"
+            className="min-w-0 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-accent-400"
+          />
+          <CategoryPicker
+            categories={categories}
+            selection={newTagSelection}
+            onChange={setNewTagSelection}
+            onDeleteCategory={onDeleteCategory}
+          />
+          <button
+            type="button"
+            onClick={handleAdd}
+            className="rounded-md bg-accent-600 px-4 py-2 text-sm font-medium text-white hover:bg-accent-700"
+          >
+            Add
+          </button>
+        </div>
+      )}
     </div>
   )
 }
@@ -604,6 +614,8 @@ function CategoryManagerModal({
   )
 }
 
+const EDIT_UNLOCKED_SESSION_KEY = 'kanban-edit-unlocked'
+
 function App() {
   const [tasks, setTasks] = useState([])
   const [categories, setCategories] = useState([])
@@ -611,6 +623,12 @@ function App() {
   const [isManagingCategories, setIsManagingCategories] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState(null)
+  const [isEditMode, setIsEditMode] = useState(
+    () => sessionStorage.getItem(EDIT_UNLOCKED_SESSION_KEY) === 'true'
+  )
+  const [isUnlockFormOpen, setIsUnlockFormOpen] = useState(false)
+  const [passcodeInput, setPasscodeInput] = useState('')
+  const [unlockError, setUnlockError] = useState(null)
 
   useEffect(() => {
     const loadData = async () => {
@@ -635,6 +653,7 @@ function App() {
   }, [])
 
   const handleAddTask = async (status, { title, description, tag }) => {
+    if (!isEditMode) return
     const columnOrders = tasks.filter((task) => task.status === status).map((task) => task.order)
     const nextOrder = columnOrders.length ? Math.max(...columnOrders) + 1 : 0
 
@@ -653,6 +672,7 @@ function App() {
   }
 
   const handleDeleteTask = (id) => {
+    if (!isEditMode) return
     setTasks((prev) => prev.filter((task) => task.id !== id))
     supabase
       .from('tasks')
@@ -668,6 +688,7 @@ function App() {
   }
 
   const handleSaveEdit = (id, { title, description, tag }) => {
+    if (!isEditMode) return
     setTasks((prev) =>
       prev.map((task) => (task.id === id ? { ...task, title, description, tag } : task))
     )
@@ -686,6 +707,7 @@ function App() {
   }
 
   const handleCreateCategory = async ({ name, color }) => {
+    if (!isEditMode) return
     if (categories.some((category) => category.name.toLowerCase() === name.toLowerCase())) {
       return
     }
@@ -705,6 +727,7 @@ function App() {
   }
 
   const handleDeleteCategory = (name) => {
+    if (!isEditMode) return
     setCategories((prev) => prev.filter((category) => category.name !== name))
     supabase
       .from('categories')
@@ -716,6 +739,7 @@ function App() {
   }
 
   const handleUpdateCategory = (oldName, { name, color }) => {
+    if (!isEditMode) return
     const trimmedName = name.trim()
     if (!trimmedName) return
 
@@ -756,6 +780,7 @@ function App() {
   }
 
   const handleDragEnd = (result) => {
+    if (!isEditMode) return
     const { source, destination, draggableId } = result
     if (!destination) return
 
@@ -808,6 +833,7 @@ function App() {
   }
 
   const handleClearAll = () => {
+    if (!isEditMode) return
     const confirmed = window.confirm(
       'Delete all tasks and categories? This cannot be undone.'
     )
@@ -826,25 +852,88 @@ function App() {
     })
   }
 
+  const handleUnlockSubmit = (e) => {
+    e.preventDefault()
+    if (passcodeInput === import.meta.env.VITE_APP_PASSCODE) {
+      setIsEditMode(true)
+      sessionStorage.setItem(EDIT_UNLOCKED_SESSION_KEY, 'true')
+      setIsUnlockFormOpen(false)
+      setPasscodeInput('')
+      setUnlockError(null)
+    } else {
+      setUnlockError('Incorrect passcode')
+    }
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 p-6">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-800">Kanban Board</h1>
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setIsManagingCategories(true)}
-            className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          <h1 className="text-2xl font-bold text-slate-800">Kanban Board</h1>
+          <span
+            className={`rounded-full px-3 py-1 text-xs font-medium ${
+              isEditMode ? 'bg-accent-100 text-accent-700' : 'bg-slate-200 text-slate-600'
+            }`}
           >
-            Manage Categories
-          </button>
-          <button
-            type="button"
-            onClick={handleClearAll}
-            className="rounded-md border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
-          >
-            Clear All
-          </button>
+            {isEditMode ? 'Edit mode' : 'Read-only'}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          {isEditMode ? (
+            <>
+              <button
+                type="button"
+                onClick={() => setIsManagingCategories(true)}
+                className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                Manage Categories
+              </button>
+              <button
+                type="button"
+                onClick={handleClearAll}
+                className="rounded-md border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
+              >
+                Clear All
+              </button>
+            </>
+          ) : isUnlockFormOpen ? (
+            <form onSubmit={handleUnlockSubmit} className="flex items-center gap-2">
+              <input
+                type="password"
+                value={passcodeInput}
+                onChange={(e) => setPasscodeInput(e.target.value)}
+                placeholder="Passcode"
+                autoFocus
+                className="w-32 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-accent-400"
+              />
+              <button
+                type="submit"
+                className="rounded-md bg-accent-600 px-4 py-2 text-sm font-medium text-white hover:bg-accent-700"
+              >
+                Unlock
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsUnlockFormOpen(false)
+                  setPasscodeInput('')
+                  setUnlockError(null)
+                }}
+                className="text-sm font-medium text-slate-500 hover:text-slate-700"
+              >
+                Cancel
+              </button>
+              {unlockError && <span className="text-xs text-red-600">{unlockError}</span>}
+            </form>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setIsUnlockFormOpen(true)}
+              className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              Unlock Editing
+            </button>
+          )}
         </div>
       </div>
       {loadError && <p className="mb-4 text-sm text-red-600">{loadError}</p>}
@@ -864,6 +953,7 @@ function App() {
                   .sort((a, b) => a.order - b.order)}
                 categories={categories}
                 editingTaskId={editingTaskId}
+                canEdit={isEditMode}
                 onAddTask={handleAddTask}
                 onDeleteTask={handleDeleteTask}
                 onStartEdit={handleStartEdit}
@@ -876,7 +966,7 @@ function App() {
           </div>
         </DragDropContext>
       )}
-      {isManagingCategories && (
+      {isEditMode && isManagingCategories && (
         <CategoryManagerModal
           categories={categories}
           onCreateCategory={handleCreateCategory}
