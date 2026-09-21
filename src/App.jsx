@@ -3,9 +3,9 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'
 import { supabase } from './src/supabaseClient'
 
 const columns = [
-  { status: 'todo', title: 'To Do', accent: 'bg-slate-400' },
-  { status: 'inprogress', title: 'In Progress', accent: 'bg-yellow-400' },
-  { status: 'done', title: 'Done', accent: 'bg-green-500' },
+  { status: 'todo', title: 'To Do', accent: 'bg-slate-300' },
+  { status: 'inprogress', title: 'In Progress', accent: 'bg-slate-500' },
+  { status: 'done', title: 'Done', accent: 'bg-accent-600' },
 ]
 
 const DEFAULT_CATEGORY_COLOR = '#6b7280'
@@ -79,7 +79,7 @@ function CategoryDropdown({ categories, selection, onChange, onDeleteCategory })
       <button
         type="button"
         onClick={() => setIsOpen((open) => !open)}
-        className="flex w-full items-center gap-2 rounded-md border border-slate-200 bg-white px-2 py-1 text-left text-sm text-slate-700 focus:outline-none focus:ring-1 focus:ring-slate-400"
+        className="flex w-full items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-left text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-accent-400"
       >
         {selection.isNew ? (
           <span className="text-slate-500">New category…</span>
@@ -101,7 +101,7 @@ function CategoryDropdown({ categories, selection, onChange, onDeleteCategory })
           <button
             type="button"
             onClick={handleSelectNone}
-            className="block w-full px-2 py-1.5 text-left text-sm text-slate-500 hover:bg-slate-50"
+            className="block w-full px-3 py-2 text-left text-sm text-slate-500 hover:bg-slate-50"
           >
             No tag
           </button>
@@ -111,7 +111,7 @@ function CategoryDropdown({ categories, selection, onChange, onDeleteCategory })
                 <button
                   type="button"
                   onClick={() => handleSelectExisting(category)}
-                  className="flex flex-1 items-center gap-2 px-2 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-50"
+                  className="flex flex-1 items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
                 >
                   <span
                     className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
@@ -133,7 +133,7 @@ function CategoryDropdown({ categories, selection, onChange, onDeleteCategory })
           <button
             type="button"
             onClick={handleSelectNew}
-            className="block w-full border-t border-slate-100 px-2 py-1.5 text-left text-sm font-medium text-slate-600 hover:bg-slate-50"
+            className="block w-full border-t border-slate-100 px-3 py-2 text-left text-sm font-medium text-accent-600 hover:bg-accent-50"
           >
             + New category…
           </button>
@@ -161,7 +161,7 @@ function ColorPickerField({ color, onChange }) {
 
 function CategoryPicker({ categories, selection, onChange, onDeleteCategory }) {
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-2">
       <CategoryDropdown
         categories={categories}
         selection={selection}
@@ -169,13 +169,13 @@ function CategoryPicker({ categories, selection, onChange, onDeleteCategory }) {
         onDeleteCategory={onDeleteCategory}
       />
       {selection.isNew && (
-        <div className="flex flex-col gap-1.5 rounded-md border border-slate-200 bg-slate-50 p-2">
+        <div className="flex flex-col gap-2 rounded-md border border-slate-200 bg-slate-50 p-4">
           <input
             type="text"
             value={selection.name}
             onChange={(e) => onChange({ ...selection, name: e.target.value })}
             placeholder="New category name"
-            className="min-w-0 rounded-md border border-slate-200 bg-white px-2 py-1 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
+            className="min-w-0 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-accent-400"
           />
           <ColorPickerField
             color={selection.color}
@@ -225,14 +225,14 @@ function TaskEditForm({ task, categories, onSave, onCancel, onCreateCategory, on
         value={draftTitle}
         onChange={(e) => setDraftTitle(e.target.value)}
         placeholder="Task title"
-        className="min-w-0 rounded-md border border-slate-200 bg-white px-2 py-1 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
+        className="min-w-0 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-accent-400"
       />
       <input
         type="text"
         value={draftDescription}
         onChange={(e) => setDraftDescription(e.target.value)}
         placeholder="Description (optional)"
-        className="min-w-0 rounded-md border border-slate-200 bg-white px-2 py-1 text-sm text-slate-600 focus:outline-none focus:ring-1 focus:ring-slate-400"
+        className="min-w-0 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-accent-400"
       />
       <CategoryPicker
         categories={categories}
@@ -244,14 +244,14 @@ function TaskEditForm({ task, categories, onSave, onCancel, onCreateCategory, on
         <button
           type="button"
           onClick={onCancel}
-          className="rounded-md border border-slate-200 px-3 py-1 text-sm font-medium text-slate-600 hover:bg-slate-50"
+          className="rounded-md border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
         >
           Cancel
         </button>
         <button
           type="button"
           onClick={handleSave}
-          className="rounded-md bg-slate-700 px-3 py-1 text-sm font-medium text-white hover:bg-slate-800"
+          className="rounded-md bg-accent-600 px-4 py-2 text-sm font-medium text-white hover:bg-accent-700"
         >
           Save
         </button>
@@ -282,8 +282,8 @@ function TaskCard({
           {...provided.draggableProps}
           {...(isEditing ? {} : provided.dragHandleProps)}
           onClick={() => !isEditing && onStartEdit(task.id)}
-          className={`relative rounded-lg bg-white p-4 shadow-sm hover:shadow-md transition-shadow border border-slate-100 ${
-            snapshot.isDragging ? 'shadow-lg ring-2 ring-slate-300' : ''
+          className={`relative rounded-lg bg-white p-4 border border-slate-200 transition-colors hover:border-accent-300 ${
+            snapshot.isDragging ? 'shadow-md border-accent-300' : ''
           } ${!isEditing ? 'cursor-pointer' : ''}`}
         >
           {isEditing ? (
@@ -390,7 +390,7 @@ function Column({
           <div
             ref={provided.innerRef}
             {...provided.droppableProps}
-            className={`flex flex-col gap-3 rounded-lg min-h-12 ${
+            className={`flex flex-col gap-2 rounded-lg min-h-12 ${
               snapshot.isDraggingOver ? 'bg-slate-200/60' : ''
             }`}
           >
@@ -413,14 +413,14 @@ function Column({
           </div>
         )}
       </Droppable>
-      <div className="mt-3 flex flex-col gap-2">
+      <div className="mt-4 flex flex-col gap-2">
         <input
           type="text"
           value={newTitle}
           onChange={(e) => setNewTitle(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
           placeholder="Task title"
-          className="min-w-0 rounded-md border border-slate-200 bg-white px-2 py-1 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
+          className="min-w-0 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-accent-400"
         />
         <input
           type="text"
@@ -428,7 +428,7 @@ function Column({
           onChange={(e) => setNewDescription(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
           placeholder="Description (optional)"
-          className="min-w-0 rounded-md border border-slate-200 bg-white px-2 py-1 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
+          className="min-w-0 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-accent-400"
         />
         <CategoryPicker
           categories={categories}
@@ -439,7 +439,7 @@ function Column({
         <button
           type="button"
           onClick={handleAdd}
-          className="rounded-md bg-slate-700 px-3 py-1 text-sm font-medium text-white hover:bg-slate-800"
+          className="rounded-md bg-accent-600 px-4 py-2 text-sm font-medium text-white hover:bg-accent-700"
         >
           Add
         </button>
@@ -459,14 +459,14 @@ function CategoryEditRow({ category, onSave, onCancel }) {
   }
 
   return (
-    <div className="flex flex-col gap-2 rounded-md border border-slate-200 bg-slate-50 p-2">
+    <div className="flex flex-col gap-2 rounded-md border border-slate-200 bg-slate-50 p-4">
       <input
         type="text"
         value={name}
         onChange={(e) => setName(e.target.value)}
         onKeyDown={(e) => e.key === 'Enter' && handleSave()}
         placeholder="Category name"
-        className="min-w-0 rounded-md border border-slate-200 bg-white px-2 py-1 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
+        className="min-w-0 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-accent-400"
       />
       <div className="flex items-center gap-2">
         <ColorPickerField color={color} onChange={setColor} />
@@ -474,14 +474,14 @@ function CategoryEditRow({ category, onSave, onCancel }) {
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-md border border-slate-200 px-3 py-1 text-sm font-medium text-slate-600 hover:bg-slate-50"
+            className="rounded-md border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={handleSave}
-            className="rounded-md bg-slate-700 px-3 py-1 text-sm font-medium text-white hover:bg-slate-800"
+            className="rounded-md bg-accent-600 px-4 py-2 text-sm font-medium text-white hover:bg-accent-700"
           >
             Save
           </button>
@@ -516,7 +516,7 @@ function CategoryManagerModal({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-sm rounded-xl bg-white p-5 shadow-xl"
+        className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
@@ -530,7 +530,7 @@ function CategoryManagerModal({
             ×
           </button>
         </div>
-        <div className="mb-4 flex max-h-64 flex-col gap-1.5 overflow-y-auto">
+        <div className="mb-4 flex max-h-64 flex-col gap-2 overflow-y-auto">
           {categories.length === 0 && (
             <p className="text-sm text-slate-400">No categories yet.</p>
           )}
@@ -548,7 +548,7 @@ function CategoryManagerModal({
             ) : (
               <div
                 key={category.name}
-                className="flex items-center justify-between rounded-md border border-slate-100 px-2 py-1.5"
+                className="flex items-center justify-between rounded-md border border-slate-100 px-3 py-2"
               >
                 <div className="flex items-center gap-2">
                   <span
@@ -579,21 +579,21 @@ function CategoryManagerModal({
             )
           )}
         </div>
-        <div className="flex flex-col gap-2 border-t border-slate-100 pt-3">
+        <div className="flex flex-col gap-2 border-t border-slate-100 pt-4">
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
             placeholder="New category name"
-            className="min-w-0 rounded-md border border-slate-200 bg-white px-2 py-1 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
+            className="min-w-0 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-accent-400"
           />
           <div className="flex items-center gap-2">
             <ColorPickerField color={color} onChange={setColor} />
             <button
               type="button"
               onClick={handleAdd}
-              className="ml-auto rounded-md bg-slate-700 px-3 py-1 text-sm font-medium text-white hover:bg-slate-800"
+              className="ml-auto rounded-md bg-accent-600 px-4 py-2 text-sm font-medium text-white hover:bg-accent-700"
             >
               Add
             </button>
@@ -827,21 +827,21 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-8">
+    <div className="min-h-screen bg-slate-50 p-6">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-slate-800">Kanban Board</h1>
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => setIsManagingCategories(true)}
-            className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
           >
             Manage Categories
           </button>
           <button
             type="button"
             onClick={handleClearAll}
-            className="rounded-md border border-red-300 bg-white px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50"
+            className="rounded-md border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
           >
             Clear All
           </button>
