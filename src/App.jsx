@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'
-import { supabase } from './src/supabaseClient'
+import { supabase } from './supabaseClient'
 
 const columns = [
   { status: 'todo', title: 'To Do', accent: 'bg-slate-300' },
@@ -614,7 +614,12 @@ function CategoryManagerModal({
   )
 }
 
-const EDIT_UNLOCKED_SESSION_KEY = 'kanban-edit-unlocked'
+function fetchBoard() {
+  return Promise.all([
+    supabase.from('categories').select('*').order('created_at', { ascending: true }),
+    supabase.from('tasks').select('*').order('order', { ascending: true }),
+  ])
+}
 
 function App() {
   const [tasks, setTasks] = useState([])
@@ -623,34 +628,48 @@ function App() {
   const [isManagingCategories, setIsManagingCategories] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState(null)
-  const [isEditMode, setIsEditMode] = useState(
-    () => sessionStorage.getItem(EDIT_UNLOCKED_SESSION_KEY) === 'true'
-  )
+  const [writeError, setWriteError] = useState(null)
+  const [session, setSession] = useState(null)
   const [isUnlockFormOpen, setIsUnlockFormOpen] = useState(false)
-  const [passcodeInput, setPasscodeInput] = useState('')
+  const [emailInput, setEmailInput] = useState('')
+  const [passwordInput, setPasswordInput] = useState('')
   const [unlockError, setUnlockError] = useState(null)
 
+  const isEditMode = !!session
+
   useEffect(() => {
-    const loadData = async () => {
-      const [categoriesResult, tasksResult] = await Promise.all([
-        supabase.from('categories').select('*').order('created_at', { ascending: true }),
-        supabase.from('tasks').select('*').order('order', { ascending: true }),
-      ])
+    supabase.auth.getSession().then(({ data }) => setSession(data.session))
 
-      if (categoriesResult.error || tasksResult.error) {
-        console.error(categoriesResult.error || tasksResult.error)
-        setLoadError('Failed to load the board from Supabase.')
-        setIsLoading(false)
-        return
-      }
+    const { data } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      setSession(newSession)
+    })
 
-      setCategories(categoriesResult.data)
-      setTasks(tasksResult.data)
+    return () => data.subscription.unsubscribe()
+  }, [])
+
+  const applyBoard = useCallback(([categoriesResult, tasksResult]) => {
+    if (categoriesResult.error || tasksResult.error) {
+      console.error(categoriesResult.error || tasksResult.error)
+      setLoadError('Failed to load the board from Supabase.')
       setIsLoading(false)
+      return
     }
 
-    loadData()
+    setLoadError(null)
+    setCategories(categoriesResult.data)
+    setTasks(tasksResult.data)
+    setIsLoading(false)
   }, [])
+
+  useEffect(() => {
+    fetchBoard().then(applyBoard)
+  }, [applyBoard])
+
+  const handleWriteError = (message, error) => {
+    console.error(message, error)
+    setWriteError(`${message}: ${error.message}`)
+    fetchBoard().then(applyBoard)
+  }
 
   const handleAddTask = async (status, { title, description, tag }) => {
     if (!isEditMode) return
@@ -664,7 +683,7 @@ function App() {
       .single()
 
     if (error) {
-      console.error('Failed to create task', error)
+      handleWriteError('Failed to create task', error)
       return
     }
 
@@ -679,7 +698,7 @@ function App() {
       .delete()
       .eq('id', id)
       .then(({ error }) => {
-        if (error) console.error('Failed to delete task', error)
+        if (error) handleWriteError('Failed to delete task', error)
       })
   }
 
@@ -698,7 +717,7 @@ function App() {
       .update({ title, description, tag })
       .eq('id', id)
       .then(({ error }) => {
-        if (error) console.error('Failed to update task', error)
+        if (error) handleWriteError('Failed to update task', error)
       })
   }
 
@@ -719,7 +738,7 @@ function App() {
       .single()
 
     if (error) {
-      console.error('Failed to create category', error)
+      handleWriteError('Failed to create category', error)
       return
     }
 
@@ -734,7 +753,7 @@ function App() {
       .delete()
       .eq('name', name)
       .then(({ error }) => {
-        if (error) console.error('Failed to delete category', error)
+        if (error) handleWriteError('Failed to delete category', error)
       })
   }
 
@@ -765,7 +784,7 @@ function App() {
       .update({ name: trimmedName, color })
       .eq('name', oldName)
       .then(({ error }) => {
-        if (error) console.error('Failed to update category', error)
+        if (error) handleWriteError('Failed to update category', error)
       })
 
     if (trimmedName !== oldName) {
@@ -774,7 +793,7 @@ function App() {
         .update({ tag: trimmedName })
         .eq('tag', oldName)
         .then(({ error }) => {
-          if (error) console.error('Failed to cascade category rename to tasks', error)
+          if (error) handleWriteError('Failed to cascade category rename to tasks', error)
         })
     }
   }
@@ -826,9 +845,8 @@ function App() {
         supabase.from('tasks').update({ order: task.order, status: task.status }).eq('id', task.id)
       )
     ).then((results) => {
-      results.forEach(({ error }) => {
-        if (error) console.error('Failed to persist task order', error)
-      })
+      const failed = results.find(({ error }) => error)
+      if (failed) handleWriteError('Failed to persist task order', failed.error)
     })
   }
 
@@ -847,22 +865,30 @@ function App() {
       supabase.from('tasks').delete().not('id', 'is', null),
       supabase.from('categories').delete().not('id', 'is', null),
     ]).then(([tasksResult, categoriesResult]) => {
-      if (tasksResult.error) console.error('Failed to clear tasks', tasksResult.error)
-      if (categoriesResult.error) console.error('Failed to clear categories', categoriesResult.error)
+      if (tasksResult.error) handleWriteError('Failed to clear tasks', tasksResult.error)
+      else if (categoriesResult.error) handleWriteError('Failed to clear categories', categoriesResult.error)
     })
   }
 
-  const handleUnlockSubmit = (e) => {
+  const handleUnlockSubmit = async (e) => {
     e.preventDefault()
-    if (passcodeInput === import.meta.env.VITE_APP_PASSCODE) {
-      setIsEditMode(true)
-      sessionStorage.setItem(EDIT_UNLOCKED_SESSION_KEY, 'true')
-      setIsUnlockFormOpen(false)
-      setPasscodeInput('')
-      setUnlockError(null)
-    } else {
-      setUnlockError('Incorrect passcode')
+    const { error } = await supabase.auth.signInWithPassword({
+      email: emailInput,
+      password: passwordInput,
+    })
+    if (error) {
+      setUnlockError(error.message)
+      return
     }
+    setIsUnlockFormOpen(false)
+    setEmailInput('')
+    setPasswordInput('')
+    setUnlockError(null)
+  }
+
+  const handleSignOut = async () => {
+    const { error } = await supabase.auth.signOut()
+    if (error) setWriteError(`Failed to sign out: ${error.message}`)
   }
 
   return (
@@ -895,15 +921,33 @@ function App() {
               >
                 Clear All
               </button>
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                Sign out
+              </button>
             </>
           ) : isUnlockFormOpen ? (
             <form onSubmit={handleUnlockSubmit} className="flex items-center gap-2">
               <input
-                type="password"
-                value={passcodeInput}
-                onChange={(e) => setPasscodeInput(e.target.value)}
-                placeholder="Passcode"
+                type="email"
+                value={emailInput}
+                onChange={(e) => setEmailInput(e.target.value)}
+                placeholder="Email"
+                autoComplete="email"
+                required
                 autoFocus
+                className="w-48 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-accent-400"
+              />
+              <input
+                type="password"
+                value={passwordInput}
+                onChange={(e) => setPasswordInput(e.target.value)}
+                placeholder="Password"
+                autoComplete="current-password"
+                required
                 className="w-32 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-accent-400"
               />
               <button
@@ -916,7 +960,8 @@ function App() {
                 type="button"
                 onClick={() => {
                   setIsUnlockFormOpen(false)
-                  setPasscodeInput('')
+                  setEmailInput('')
+                  setPasswordInput('')
                   setUnlockError(null)
                 }}
                 className="text-sm font-medium text-slate-500 hover:text-slate-700"
@@ -937,6 +982,19 @@ function App() {
         </div>
       </div>
       {loadError && <p className="mb-4 text-sm text-red-600">{loadError}</p>}
+      {writeError && (
+        <div className="mb-4 flex items-center gap-2 text-sm text-red-600">
+          <p>{writeError}</p>
+          <button
+            type="button"
+            onClick={() => setWriteError(null)}
+            aria-label="Dismiss error"
+            className="text-red-400 hover:text-red-600"
+          >
+            ×
+          </button>
+        </div>
+      )}
       {isLoading ? (
         <p className="text-sm text-slate-500">Loading board…</p>
       ) : (
