@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'
 import { supabase } from './supabaseClient'
+import { io } from 'socket.io-client'
 import * as api from './api'
 
 const columns = [
@@ -665,6 +666,20 @@ function App() {
 
   useEffect(() => {
     loadBoard()
+  }, [loadBoard])
+
+  useEffect(() => {
+    const socket = io(api.API_URL)
+
+    socket.on('connect', () => api.setSocketId(socket.id))
+    socket.on('disconnect', () => api.setSocketId(null))
+    socket.on('board:changed', loadBoard)
+    socket.io.on('reconnect', loadBoard)
+
+    return () => {
+      api.setSocketId(null)
+      socket.disconnect()
+    }
   }, [loadBoard])
 
   const handleWriteError = (message, error) => {

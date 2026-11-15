@@ -9,6 +9,13 @@ const httpServer = createServer(app)
 const io = new Server(httpServer, { cors: { origin: allowedOrigins } })
 app.set('io', io)
 
+io.on('connection', (socket) => {
+  console.log(`Socket connected: ${socket.id}`)
+  socket.on('disconnect', (reason) => {
+    console.log(`Socket disconnected: ${socket.id} (${reason})`)
+  })
+})
+
 httpServer.on('error', (error) => {
   console.error('Failed to start server:', error)
   process.exit(1)
