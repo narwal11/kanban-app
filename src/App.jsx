@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'
 import { supabase } from './supabaseClient'
+import * as api from './api'
 
 const columns = [
   { status: 'todo', title: 'To Do', accent: 'bg-slate-300' },
@@ -614,13 +615,6 @@ function CategoryManagerModal({
   )
 }
 
-function fetchBoard() {
-  return Promise.all([
-    supabase.from('categories').select('*').order('created_at', { ascending: true }),
-    supabase.from('tasks').select('*').order('order', { ascending: true }),
-  ])
-}
-
 function App() {
   const [tasks, setTasks] = useState([])
   const [categories, setCategories] = useState([])
@@ -638,37 +632,45 @@ function App() {
   const isEditMode = !!session
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSession(data.session))
+    supabase.auth.getSession().then(({ data }) => {
+      api.setAccessToken(data.session?.access_token)
+      setSession(data.session)
+    })
 
     const { data } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      api.setAccessToken(newSession?.access_token)
       setSession(newSession)
     })
 
     return () => data.subscription.unsubscribe()
   }, [])
 
-  const applyBoard = useCallback(([categoriesResult, tasksResult]) => {
-    if (categoriesResult.error || tasksResult.error) {
-      console.error(categoriesResult.error || tasksResult.error)
-      setLoadError('Failed to load the board from Supabase.')
-      setIsLoading(false)
-      return
-    }
-
-    setLoadError(null)
-    setCategories(categoriesResult.data)
-    setTasks(tasksResult.data)
-    setIsLoading(false)
-  }, [])
+  const loadBoard = useCallback(
+    () =>
+      api.getBoard().then(
+        (board) => {
+          setLoadError(null)
+          setCategories(board.categories)
+          setTasks(board.tasks)
+          setIsLoading(false)
+        },
+        (error) => {
+          console.error(error)
+          setLoadError('Failed to load the board from the API.')
+          setIsLoading(false)
+        }
+      ),
+    []
+  )
 
   useEffect(() => {
-    fetchBoard().then(applyBoard)
-  }, [applyBoard])
+    loadBoard()
+  }, [loadBoard])
 
   const handleWriteError = (message, error) => {
     console.error(message, error)
     setWriteError(`${message}: ${error.message}`)
-    fetchBoard().then(applyBoard)
+    loadBoard()
   }
 
   const handleAddTask = async (status, { title, description, tag }) => {
@@ -676,30 +678,18 @@ function App() {
     const columnOrders = tasks.filter((task) => task.status === status).map((task) => task.order)
     const nextOrder = columnOrders.length ? Math.max(...columnOrders) + 1 : 0
 
-    const { data, error } = await supabase
-      .from('tasks')
-      .insert({ title, description, tag, status, order: nextOrder })
-      .select()
-      .single()
-
-    if (error) {
+    try {
+      const task = await api.createTask({ title, description, tag, status, order: nextOrder })
+      setTasks((prev) => [...prev, task])
+    } catch (error) {
       handleWriteError('Failed to create task', error)
-      return
     }
-
-    setTasks((prev) => [...prev, data])
   }
 
   const handleDeleteTask = (id) => {
     if (!isEditMode) return
     setTasks((prev) => prev.filter((task) => task.id !== id))
-    supabase
-      .from('tasks')
-      .delete()
-      .eq('id', id)
-      .then(({ error }) => {
-        if (error) handleWriteError('Failed to delete task', error)
-      })
+    api.deleteTask(id).catch((error) => handleWriteError('Failed to delete task', error))
   }
 
   const handleStartEdit = (id) => {
@@ -712,13 +702,9 @@ function App() {
       prev.map((task) => (task.id === id ? { ...task, title, description, tag } : task))
     )
     setEditingTaskId(null)
-    supabase
-      .from('tasks')
-      .update({ title, description, tag })
-      .eq('id', id)
-      .then(({ error }) => {
-        if (error) handleWriteError('Failed to update task', error)
-      })
+    api
+      .updateTask(id, { title, description, tag })
+      .catch((error) => handleWriteError('Failed to update task', error))
   }
 
   const handleCancelEdit = () => {
@@ -731,30 +717,18 @@ function App() {
       return
     }
 
-    const { data, error } = await supabase
-      .from('categories')
-      .insert({ name, color })
-      .select()
-      .single()
-
-    if (error) {
+    try {
+      const category = await api.createCategory({ name, color })
+      setCategories((prev) => [...prev, category])
+    } catch (error) {
       handleWriteError('Failed to create category', error)
-      return
     }
-
-    setCategories((prev) => [...prev, data])
   }
 
   const handleDeleteCategory = (name) => {
     if (!isEditMode) return
     setCategories((prev) => prev.filter((category) => category.name !== name))
-    supabase
-      .from('categories')
-      .delete()
-      .eq('name', name)
-      .then(({ error }) => {
-        if (error) handleWriteError('Failed to delete category', error)
-      })
+    api.deleteCategory(name).catch((error) => handleWriteError('Failed to delete category', error))
   }
 
   const handleUpdateCategory = (oldName, { name, color }) => {
@@ -779,23 +753,10 @@ function App() {
       )
     }
 
-    supabase
-      .from('categories')
-      .update({ name: trimmedName, color })
-      .eq('name', oldName)
-      .then(({ error }) => {
-        if (error) handleWriteError('Failed to update category', error)
-      })
-
-    if (trimmedName !== oldName) {
-      supabase
-        .from('tasks')
-        .update({ tag: trimmedName })
-        .eq('tag', oldName)
-        .then(({ error }) => {
-          if (error) handleWriteError('Failed to cascade category rename to tasks', error)
-        })
-    }
+    // The server cascades a rename to tasks.tag.
+    api
+      .updateCategory(oldName, { name: trimmedName, color })
+      .catch((error) => handleWriteError('Failed to update category', error))
   }
 
   const handleDragEnd = (result) => {
@@ -840,14 +801,11 @@ function App() {
       return task.order !== original.order || task.status !== original.status
     })
 
-    Promise.all(
-      changedTasks.map((task) =>
-        supabase.from('tasks').update({ order: task.order, status: task.status }).eq('id', task.id)
-      )
-    ).then((results) => {
-      const failed = results.find(({ error }) => error)
-      if (failed) handleWriteError('Failed to persist task order', failed.error)
-    })
+    if (changedTasks.length === 0) return
+
+    api
+      .reorderTasks(changedTasks.map(({ id, status, order }) => ({ id, status, order })))
+      .catch((error) => handleWriteError('Failed to persist task order', error))
   }
 
   const handleClearAll = () => {
@@ -861,13 +819,7 @@ function App() {
     setCategories([])
     setEditingTaskId(null)
 
-    Promise.all([
-      supabase.from('tasks').delete().not('id', 'is', null),
-      supabase.from('categories').delete().not('id', 'is', null),
-    ]).then(([tasksResult, categoriesResult]) => {
-      if (tasksResult.error) handleWriteError('Failed to clear tasks', tasksResult.error)
-      else if (categoriesResult.error) handleWriteError('Failed to clear categories', categoriesResult.error)
-    })
+    api.clearBoard().catch((error) => handleWriteError('Failed to clear the board', error))
   }
 
   const handleUnlockSubmit = async (e) => {
